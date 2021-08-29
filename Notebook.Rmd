@@ -1,0 +1,69 @@
+---
+title: "Projecting Waffle Pars"
+author: "Jackson Rudoff"
+date: "8/29/2021"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+This document outlines my attempts to make a waffle par predictor.
+
+```{r Doing initial tests}
+
+library(pacman)
+pacman::p_load(tidyverse, lme4)
+
+#I figure a few variables matter most here: day of the week, season, weather, and historical totals. I'll start off by creating the easy variables.
+
+week_day <- factor(c
+                   ('Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'),
+                   levels = c('Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday')) 
+
+weather <- as.factor(c('Stormy', 'Sunny', 'Overcast', 'Drizzling', 'Snow', 'Chilly'))
+
+season <- as.factor(c('Winter', 'Spring', 'Summer', 'Fall'))
+
+special_event <- as.factor(c('Yes', 'No'))
+
+OSU_students <- as.factor(c('Yes', 'No'))
+
+#Gonna do this with fake data first to see how well this will eventually work
+
+cones <- sample.int(250, 84, replace = TRUE)
+
+#Try to make a frame here
+
+test_season <- c((rep(season[2],22)),
+                  (rep(season[3],62)))
+
+test_OSU_students <- c((rep(OSU_students[2],66, replace = TRUE)), 
+                        (rep(OSU_students[1],18, replace = TRUE)))
+test_special_event <- sample(special_event, 84, replace = TRUE)
+test_day <- rep(week_day, times = 12)
+test_weather <- sample(weather[1:4], 84, replace = TRUE)
+
+x <- tibble(cones, test_day, test_season, test_OSU_students, test_special_event, test_weather)
+
+
+#Okay so now we can run a basic linear model to find interactions
+
+waffle_test <- lm(formula = cones ~ test_day + test_season + test_weather + test_special_event + test_OSU_students, data = x)
+summary(waffle_test)
+
+#See if it predicts
+
+
+predict(waffle_test, data.frame(test_day = 'Monday', test_season = 3, test_weather = 'Sunny', test_special_event = 'Yes', test_OSU_students = 2))
+
+
+```
+
+```{r Reading in the data}
+
+
+
+```
+
