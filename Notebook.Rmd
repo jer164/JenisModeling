@@ -75,40 +75,56 @@ waffle_totals_daily <- read.xlsx("/Users/jacksonrudoff/Documents/Data Projects/W
 weather_data <- read_csv("weather data.csv") %>% as_tibble()
 
 dailytemp <- weather_data$TAVG[214:366]
+realdates <- weather_data$DATE[214:366]
 dailyprecip <- weather_data$PRCP[214:366]
 snow <- weather_data$SNOW[214:366]
 thunder <- weather_data$WT03[214:366] %>% 
   replace_na(0) %>% as.factor()
-gallery_hop <- 
+
+#Get gallery hop dates
+gallery_hopdates <- firstmodel %>% 
+  filter(days_real == 'Saturday') %>% 
+  dplyr::select(realdates)
+gallery_hopdates <- gallery_hopdates[10:22,]
+gallery_hopdates <- gallery_hopdates[c(1,5,10),]
+gallery_hop <- factor(rep('No', 153), levels = c('No', 'Yes'))
+gallery_hop[c(69, 97, 132)] <-  'Yes'
+
+#holidays
+is_holiday <- factor(rep('No', 153), levels = c('No', 'Yes'))
+is_holiday[c(7, 42, 64, 84, 98)] <-  'Yes'
+
 
 cones_real <- waffle_totals_daily$Cones[1:153]
 bowls_real <- waffle_totals_daily$Bowls[1:153]
 days_real <- waffle_totals_daily$Day[1:153] %>% as_factor()
 
 
-firstmodel <- tibble(days_real,cones_real,bowls_real,dailytemp,dailyprecip,snow,thunder)
+firstmodel <- tibble(realdates,days_real,gallery_hop,is_holiday,cones_real,bowls_real,dailytemp,dailyprecip,snow,thunder)
 
 cone_model <- lm(formula = 
-                     cones_real ~ days_real + dailyprecip + dailytemp + snow + thunder, data = firstmodel)
+                   cones_real ~ days_real + dailyprecip + dailytemp + 
+                   snow + thunder + gallery_hop + is_holiday, data = firstmodel)
 summary(cone_model)
 
-predict(cone_model, data.frame(days_real = 'Tuesday', dailyprecip = 0.1, dailytemp = 103, snow = 0, thunder = '1'))
+predict(cone_model, data.frame(days_real = 'Saturday', dailyprecip = 0.0, dailytemp = 75, snow = 0, thunder = '0', gallery_hop = 'Yes', is_holiday = "Yes"))
 
 bowl_model <- lm(formula = 
-                     bowls_real ~ days_real + dailyprecip + dailytemp + snow + thunder, data = firstmodel)
+                   bowls_real ~ days_real + dailyprecip + 
+                   dailytemp + snow + thunder + gallery_hop + is_holiday, data = firstmodel)
 
 summary(bowl_model)
 
 
-cones_function <- function(a,b,c) {
+cones_function <- function(a,b,c,d,e) {
   
-print(predict(cone_model, data.frame(days_real = a, dailyprecip = b, dailytemp = c, snow = 0, thunder = '0')))
+print(predict(cone_model, data.frame(days_real = a, dailyprecip = b, dailytemp = c, snow = 0, thunder = '0', gallery_hop = d, is_holiday = e)))
   
 }
 
-bowls_function <- function(a,b,c) {
+bowls_function <- function(a,b,c,d,e) {
   
-print(predict(bowl_model, data.frame(days_real = a, dailyprecip = b, dailytemp = c, snow = 0, thunder = '0')))
+print(predict(bowl_model, data.frame(days_real = a, dailyprecip = b, dailytemp = c, snow = 0, thunder = '0', gallery_hop = d, is_holiday = e)))
   
 }
 
