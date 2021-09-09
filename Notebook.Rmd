@@ -14,7 +14,7 @@ This document outlines my attempts to make a waffle par predictor.
 ```{r Doing initial tests}
 
 library(pacman)
-pacman::p_load(tidyverse, lme4)
+pacman::p_load(tidyverse, lme4, openxlsx)
 
 #I figure a few variables matter most here: day of the week, season, weather, and historical totals. I'll start off by creating the easy variables.
 
@@ -56,12 +56,70 @@ summary(waffle_test)
 #See if it predicts
 
 
-predict(waffle_test, data.frame(test_day = 'Monday', test_season = 3, test_weather = 'Sunny', test_special_event = 'Yes', test_OSU_students = 2))
+predict(waffle_test, data.frame(test_day = 'Tuesday', test_season = 3, test_weather = 'Sunny', test_special_event = 'Yes', test_OSU_students = 2))
+
+
 
 
 ```
 
 ```{r Reading in the data}
+
+waffle_totals_daily <- read.xlsx("/Users/jacksonrudoff/Documents/Data Projects/Waffle Project/waffle_totals.xlsx") %>% as_tibble()
+
+library(readr)
+weather_data <- read_csv("weather data.csv") %>% as_tibble()
+
+dailytemp <- weather_data$TAVG[214:366]
+dailyprecip <- weather_data$PRCP[214:366]
+snow <- weather_data$SNOW[214:366]
+thunder <- weather_data$WT03[214:366] %>% 
+  replace_na(0) %>% as.factor()
+gallery_hop <- 
+
+cones_real <- waffle_totals_daily$Cones[1:153]
+bowls_real <- waffle_totals_daily$Bowls[1:153]
+days_real <- waffle_totals_daily$Day[1:153] %>% as_factor()
+
+
+firstmodel <- tibble(days_real,cones_real,bowls_real,dailytemp,dailyprecip,snow,thunder)
+
+cone_model <- lm(formula = 
+                     cones_real ~ days_real + dailyprecip + dailytemp + snow + thunder, data = firstmodel)
+summary(cone_model)
+
+predict(cone_model, data.frame(days_real = 'Tuesday', dailyprecip = 0.1, dailytemp = 103, snow = 0, thunder = '1'))
+
+bowl_model <- lm(formula = 
+                     bowls_real ~ days_real + dailyprecip + dailytemp + snow + thunder, data = firstmodel)
+
+summary(bowl_model)
+
+
+cones_function <- function(a,b,c) {
+  
+print(predict(cone_model, data.frame(days_real = a, dailyprecip = b, dailytemp = c, snow = 0, thunder = '0')))
+  
+}
+
+bowls_function <- function(a,b,c) {
+  
+print(predict(bowl_model, data.frame(days_real = a, dailyprecip = b, dailytemp = c, snow = 0, thunder = '0')))
+  
+}
+
+one_week <- levels(days_real) %>% as.factor()
+
+count <- 0
+busy_days <- c()
+
+for (i in seq_along(cones_real)) {
+  
+  if(cones_real[i] >= 140) {
+  busy_days[i] <- cones_real[i] 
+  }
+  busy_days <- busy_days[!is.na(busy_days)]
+}
 
 
 

@@ -13,46 +13,77 @@ library(shiny)
 ui <- fluidPage(
 
     # Application title
-    titlePanel("Waffle Pars Calculator"),
+    headerPanel("Waffle Pars Calculator"),
 
-    # Sidebar with a slider input for number of bins 
-    fluidRow(
-      column(3,
-                    selectInput("select", h3("Day of Week"), 
-                                choices = list("Monday" = 1, "Tuesday" = 2,
+      sidebarPanel(
+      selectInput("day", h3("Day of Week"), choices = list("Monday" = 1, "Tuesday" = 2,
                                                "Wednesday" = 3, "Thursday" = 4,
                                                "Friday" = 5, "Saturday" = 6,
-                                               "Sunday" = 7), selected = 1)),
+                                               "Sunday" = 7), selected = 1),
     
-      column(3, 
-             selectInput("select", h3("Season"), 
-                         choices = list("Winter" = 1, "Spring" = 2,
-                                        "Summer" = 3, "Fall" = 4)
-                                       , selected = 1)),
+       numericInput("precip", 
+                          h3("Expected Rainfall"), 
+                          value = 1),
+      
+       numericInput("temp", 
+                          h3("Temperature(F)"), 
+                          value = 70),
     
-      column(3, 
-            selectInput("select", h3("OSU in Session"), 
+       selectInput("snow", h3("Snowing?"), 
                    choices = list("No" = 1, "Yes" = 2)
-                   , selected = 1)),
+                   , selected = 1),
       
-      column(3,
-             selectInput("select", h3("Forecast"), 
-                         choices = list("Chilly" = 1, "Drizzling" = 2,
-                                        "Overcast" = 3, "Snow" = 4,
-                                        "Stormy" = 5, "Sunny" = 6), selected = 1)),
-      
-      column(3,
-             selectInput("select", h3("Special Event?"), 
-                         choices = list("No" = 1, "Yes" = 2
-                                        ), selected = 1)),
-      
-       )
+       selectInput("stormy", h3("Stormy?"), 
+                         choices = list("No" = 1, "Yes" = 2), 
+                         selected = 1),
     
-)
+      mainPanel(
+        h3(verbatimTextOutput("pasted")),
         
+      )
+    )
+  )
+
+waffle_totals_daily <- read.xlsx("/Users/jacksonrudoff/Documents/Data Projects/Waffle Project/waffle_totals.xlsx") %>% as_tibble()
+
+library(readr)
+weather_data <- read_csv("/Users/jacksonrudoff/Documents/Data Projects/Waffle Project/weather data.csv") %>% as_tibble()
+
+dailytemp <- weather_data$TAVG[214:366]
+dailyprecip <- weather_data$PRCP[214:366]
+snow <- weather_data$SNOW[214:366]
+thunder <- weather_data$WT03[214:366] %>% 
+  replace_na(0) %>% as.factor()
+
+cones_real <- waffle_totals_daily$Cones[1:153]
+bowls_real <- waffle_totals_daily$Bowls[1:153]
+days_real <- waffle_totals_daily$Day[1:153] %>% as_factor()
+
+
+firstmodel <- tibble(days_real,cones_real,bowls_real,dailytemp,dailyprecip,snow,thunder)
+
+cone_model <- lm(formula = 
+                   cones_real ~ days_real + dailyprecip + dailytemp + snow + thunder, data = firstmodel)
 
 # Define server logic required to draw a histogram
-server <- function(input, output) {}
+server <- function(input, output) {
+  
+  waffle_text <- reactive({
+    predict(cone_model, 
+                  data.frame(
+                    days_real = input$day, 
+                    dailyprecip = input$precip,
+                    dailytemp = input$temp, 
+                    snow = input$snow, 
+                    thunder = input$stormy))})
+  
+  
+  output$pasted <- renderPrint({waffle_text})
+  
+}
+  
+
+  
 
 # Run the application 
 shinyApp(ui = ui, server = server)
