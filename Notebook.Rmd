@@ -65,9 +65,13 @@ predict(waffle_test, data.frame(test_day = 'Tuesday', test_season = 3, test_weat
 
 ```{r Reading in the data}
 
+library(readr)
+library(openxlsx)
+library(tidyverse)
+library(lme4)
+
 waffle_totals_daily <- read.xlsx("/Users/jacksonrudoff/Documents/Data Projects/Waffle Project/waffle_totals.xlsx") %>% as_tibble()
 
-library(readr)
 weather_data <- read_csv("weather data.csv") %>% as_tibble()
 
 dailytemp <- weather_data$TAVG[214:366]
@@ -110,6 +114,13 @@ print(predict(bowl_model, data.frame(days_real = a, dailyprecip = b, dailytemp =
 
 one_week <- levels(days_real) %>% as.factor()
 
+
+
+
+```
+
+
+```{r For loop testing}
 count <- 0
 busy_days <- c()
 
@@ -120,7 +131,6 @@ for (i in seq_along(cones_real)) {
   }
   busy_days <- busy_days[!is.na(busy_days)]
 }
-
 
 
 ```
