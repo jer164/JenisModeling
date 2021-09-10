@@ -121,7 +121,7 @@ summary(bowl_model)
 cones_function <- function(a,b,c,d,e) {
   
 a <- readline('What day of the week is it? ')
-b <- readline('How much is it going to rain? (cm) ')
+b <- readline('How much is it going to rain? (in) ')
 c <- readline('What is the average temp for the day? ')
 d <- readline('Is it gallery hop? ')
 e <- readline('Is it a holiday or holiday weekend? ')
