@@ -1,0 +1,53 @@
+---
+title: "Using the Waffle Formula"
+author: "Jackson Rudoff"
+date: "9/12/2021"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, include=FALSE}
+
+require(tidyverse)
+library(readr)
+library(openxlsx)
+library(tidyverse)
+library(lme4)
+
+load("data_for_waffle_model.Rdata")
+
+cone_model <- lm(formula = 
+                   cones_real ~ days_real + dailyprecip + dailytemp + 
+                   snow + thunder + gallery_hop + is_holiday, data = firstmodel)
+summary(cone_model)
+
+predict(cone_model, data.frame(days_real = 'Saturday', dailyprecip = 0.0, dailytemp = 75, snow = 0, thunder = '0', gallery_hop = 'Yes', is_holiday = "Yes"))
+
+bowl_model <- lm(formula = 
+                   bowls_real ~ days_real + dailyprecip + 
+                   dailytemp + snow + thunder + gallery_hop + is_holiday, data = firstmodel)
+
+summary(bowl_model)
+  
+```
+
+## Introduction
+Welcome to the Waffle Par Calculator! This document will show how to set everything up. By the end, you will be able to access the function that predicts how many cones and bowls we need for a given day. 
+
+## Setting up the data
+
+First, we will need to get the data loaded in. This should be quite simple. In the folder, the is an .Rdata file titled **data_for_waffle_model**. Click on this file, and it will provide you with the training dataset for our predictor. After it does this, an object called "firstmodel" should now be in the environment (it will be visible in the right-hand pane, under a tab called **Data**). 
+
+## Setting up the model
+
+There is a script in the folder called "script to set everything up.R". This script will add more objects to the environment. To run it, click on it in the bottom right pane of the UI (you can also click on it in the Finder), and then press command + return(enter). This should add the models and the function to the library. If you do not see **bowl_model** and **cone_model** under the **Data** tab, then something went wrong (text me). There should also now be something under the **Functions** tab of the environment pane.
+
+## Running the model
+
+Everything should be set up now to run the function. In the console, which is located on the bottom left, type **cones_function()** on the line with the lesser/greater sign and then press enter. You will know you did it right if the prompts appear. *The first letters must be capitalized or it will not work*. 
+
+
+
