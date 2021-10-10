@@ -74,17 +74,17 @@ waffle_totals_daily <- read.xlsx("~/Documents/Data Projects/Waffle Project/waffl
 
 weather_data <- read_csv("weather data.csv") %>% as_tibble()
 
-dailytemp <- weather_data$TAVG[214:366]
-realdates <- weather_data$DATE[214:366]
-dailyprecip <- weather_data$PRCP[214:366]
-snow <- weather_data$SNOW[214:366]
-thunder <- weather_data$WT03[214:366] %>% 
+dailytemp <- weather_data$TAVG[88:280]
+realdates <- weather_data$DATE[88:280]
+dailyprecip <- weather_data$PRCP[88:280]
+snow <- weather_data$SNOW[88:280]
+thunder <- weather_data$WT03[88:280] %>% 
   replace_na(0) %>% as.factor()
 
 
-cones_real <- waffle_totals_daily$Cones[1:153]
-bowls_real <- waffle_totals_daily$Bowls[1:153]
-days_real <- waffle_totals_daily$Day[1:153] %>% as_factor()
+cones_real <- waffle_totals_daily$Cones[1:193]
+bowls_real <- waffle_totals_daily$Bowls[1:193]
+days_real <- waffle_totals_daily$Day[1:193] %>% as_factor()
 
 
 firstmodel <- tibble(realdates,days_real,cones_real,bowls_real,dailytemp,dailyprecip,snow,thunder)
@@ -93,64 +93,66 @@ firstmodel <- tibble(realdates,days_real,cones_real,bowls_real,dailytemp,dailypr
 gallery_hopdates <- firstmodel %>% 
   filter(days_real == 'Saturday') %>% 
   dplyr::select(realdates)
-gallery_hopdates <- gallery_hopdates[10:22,]
-gallery_hopdates <- gallery_hopdates[c(1,5,10),]
-gallery_hop <- factor(rep('No', 153), levels = c('No', 'Yes'))
-gallery_hop[c(69, 97, 132)] <-  'Yes'
+gallery_hopdates <- gallery_hopdates[10:27,]
+gallery_hopdates <- gallery_hopdates[c(1,5,10,14,18),]
+gallery_hop <- factor(rep('No', 193), levels = c('No', 'Yes'))
+gallery_hop[c(69, 97, 132,160,188)] <-  'Yes'
 
 #holidays
-is_holiday <- factor(rep('No', 153), levels = c('No', 'Yes'))
-is_holiday[c(7, 42, 64, 84, 98)] <-  'Yes'
+is_holiday <- factor(rep('No', 193), levels = c('No', 'Yes'))
+is_holiday[c(7, 42, 64, 84, 98,162)] <-  'Yes'
 
 firstmodel <- tibble(realdates,days_real,gallery_hop,is_holiday,cones_real,bowls_real,dailytemp,dailyprecip,snow,thunder)
 
-cone_model <- lm(formula = 
+library(MASS)
+
+cone_modelGLM <- glm.nb(formula = 
                    cones_real ~ days_real + dailyprecip + dailytemp + 
                    snow + thunder + gallery_hop + is_holiday, data = firstmodel)
-summary(cone_model)
 
-predict.glm(cone_model, data.frame(days_real = 'Saturday', dailyprecip = 0.0, dailytemp = 75, snow = 0, thunder = '0', gallery_hop = 'Yes', is_holiday = "Yes"))
-
-bowl_model <- lm(formula = 
-                   bowls_real ~ days_real + dailyprecip + 
-                   dailytemp + snow + thunder + gallery_hop + is_holiday, data = firstmodel)
-
-summary(bowl_model)
-
-
-cones_function <- function(a,b,c,d,e) {
-  
-a <- readline('What day of the week is it? ')
-b <- readline('How much is it going to rain? (in) ')
-c <- readline('What is the average temp for the day? ')
-d <- readline('Is it gallery hop? ')
-e <- readline('Is it a holiday or holiday weekend? ')
-
-b <- as.numeric(paste(b))
-c <- as.numeric(paste(c))
+bowl_modelGLM <- glm.nb(formula = 
+                          bowls_real ~ days_real + dailyprecip + dailytemp + 
+                          snow + thunder + gallery_hop + is_holiday, data = firstmodel,)
 
   
-print(round((predict(cone_model, data.frame(days_real = a, dailyprecip = b, dailytemp = c, snow = 0, thunder = '0', gallery_hop = d, is_holiday = e), interval = 'confidence'))))
+cones_function <- function(a,b,c,d,e){
+    
+    a <- readline('What day of the week is it? ')
+    b <- readline('How much is it going to rain? (in) ')
+    c <- readline('What is the average temp for the day? ')
+    d <- readline('Is it gallery hop? ')
+    e <- readline('Is it a holiday or holiday weekend? ')
+    
+    b <- as.numeric(paste(b))
+    c <- as.numeric(paste(c))
+    
+    
+conepredict <- round(predict(cone_modelGLM, data.frame(days_real = a, 
+                                               dailyprecip = b, 
+                                               dailytemp = c, 
+                                               snow = 0, 
+                                               thunder = '0', 
+                                               gallery_hop = d, 
+                                               is_holiday = e), 
+                     type = 'response'))
 
-print(round((predict(bowl_model, data.frame(days_real = a, dailyprecip = b, dailytemp = c, snow = 0, thunder = '0', gallery_hop = d, is_holiday = e), interval = 'confidence'))))
-  
-}
+bowlpredict <- round(predict(bowl_modelGLM, data.frame(days_real = a, 
+                                        dailyprecip = b, 
+                                        dailytemp = c, 
+                                        snow = 0, 
+                                        thunder = '0', 
+                                        gallery_hop = d, 
+                                        is_holiday = e), 
+              type = 'response'))
 
-bowls_function <- function(a,b,c,d,e) {
-  
-a <- readline('What day of the week is it? ')
-b <- readline('How much is it going to rain? (in) ')
-c <- readline('What is the average temp for the day? ')
-d <- readline('Is it gallery hop? ')
-e <- readline('Is it a holiday or holiday weekend? ')
+predictions <- tibble(conepredict,bowlpredict) %>% add_column(.before = 'bowlpredict', 
+                                                              'uppercones' = round(
+                                                                1.10*conepredict)) %>% 
+                                                  add_column(.after = 'bowlpredict', 
+                                                              'upperbowls' = round(
+                                                               1.10*bowlpredict))
+print(predictions)
 
-b <- as.numeric(paste(b))
-c <- as.numeric(paste(c))
-  
-print(round((predict(bowl_model, data.frame(days_real = a, dailyprecip = b, dailytemp = c, snow = 0, thunder = '0', gallery_hop = d, is_holiday = e), interval = 'confidence'))))
-
-print(round(predict(cone_model, data.frame(days_real = a, dailyprecip = b, dailytemp = c, snow = 0, thunder = '0', gallery_hop = d, is_holiday = e), interval = 'confidence')))
-  
 }
 
 ```
