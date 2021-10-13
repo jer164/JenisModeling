@@ -3,22 +3,18 @@ library(readr)
 library(openxlsx)
 library(tidyverse)
 library(lme4)
+library(MASS)
 
-cone_model <- lm(formula = 
-                   cones_real ~ days_real + dailyprecip + dailytemp + 
-                   snow + thunder + gallery_hop + is_holiday, data = firstmodel)
-summary(cone_model)
+cone_modelGLM <- glm.nb(formula = 
+                          cones_real ~ days_real + dailyprecip + dailytemp + 
+                          snow + thunder + gallery_hop + is_holiday, data = firstmodel)
 
-predict(cone_model, data.frame(days_real = 'Saturday', dailyprecip = 0.0, dailytemp = 75, snow = 0, thunder = '0', gallery_hop = 'Yes', is_holiday = "Yes"))
-
-bowl_model <- lm(formula = 
-                   bowls_real ~ days_real + dailyprecip + 
-                   dailytemp + snow + thunder + gallery_hop + is_holiday, data = firstmodel)
-
-summary(bowl_model)
+bowl_modelGLM <- glm.nb(formula = 
+                          bowls_real ~ days_real + dailyprecip + dailytemp + 
+                          snow + thunder + gallery_hop + is_holiday, data = firstmodel,)
 
 
-cones_function <- function(a,b,c,d,e) {
+cones_function <- function(a,b,c,d,e){
   
   a <- readline('What day of the week is it? ')
   b <- readline('How much is it going to rain? (in) ')
@@ -30,8 +26,30 @@ cones_function <- function(a,b,c,d,e) {
   c <- as.numeric(paste(c))
   
   
-  print(predict(cone_model, data.frame(days_real = a, dailyprecip = b, dailytemp = c, snow = 0, thunder = '0', gallery_hop = d, is_holiday = e), interval = 'confidence'))
+  conepredict <- round(predict(cone_modelGLM, data.frame(days_real = a, 
+                                                         dailyprecip = b, 
+                                                         dailytemp = c, 
+                                                         snow = 0, 
+                                                         thunder = '0', 
+                                                         gallery_hop = d, 
+                                                         is_holiday = e), 
+                               type = 'response'))
   
-  print(predict(bowl_model, data.frame(days_real = a, dailyprecip = b, dailytemp = c, snow = 0, thunder = '0', gallery_hop = d, is_holiday = e), interval = 'confidence'))
+  bowlpredict <- round(predict(bowl_modelGLM, data.frame(days_real = a, 
+                                                         dailyprecip = b, 
+                                                         dailytemp = c, 
+                                                         snow = 0, 
+                                                         thunder = '0', 
+                                                         gallery_hop = d, 
+                                                         is_holiday = e), 
+                               type = 'response'))
+  
+  predictions <- tibble(conepredict,bowlpredict) %>% add_column(.before = 'bowlpredict', 
+                                                                'uppercones' = round(
+                                                                  1.10*conepredict)) %>% 
+    add_column(.after = 'bowlpredict', 
+               'upperbowls' = round(
+                 1.10*bowlpredict))
+  print(predictions)
   
 }

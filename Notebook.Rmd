@@ -69,6 +69,7 @@ library(readr)
 library(openxlsx)
 library(tidyverse)
 library(lme4)
+library(MASS)
 
 waffle_totals_daily <- read.xlsx("~/Documents/Data Projects/Waffle Project/waffle_totals.xlsx") %>% as_tibble()
 
@@ -103,8 +104,6 @@ is_holiday <- factor(rep('No', 193), levels = c('No', 'Yes'))
 is_holiday[c(7, 42, 64, 84, 98,162)] <-  'Yes'
 
 firstmodel <- tibble(realdates,days_real,gallery_hop,is_holiday,cones_real,bowls_real,dailytemp,dailyprecip,snow,thunder)
-
-library(MASS)
 
 cone_modelGLM <- glm.nb(formula = 
                    cones_real ~ days_real + dailyprecip + dailytemp + 
@@ -159,7 +158,164 @@ print(predictions)
 
 ```{r Setting this up for re-use}
 
-save(firstmodel, file = "data_for_waffle_model.Rdata")
+save(firstmodel, file = "data_for_waffle_model_updated10-10.Rdata")
+
+```
+
+```{r Using the Code Day-to-Day}
+
+load("/Users/jacksonrudoff/Documents/Data Projects/Waffle Project/data_for_waffle_model_updated10-10.Rdata")
+
+cone_modelGLM <- glm.nb(formula = 
+                   cones_real ~ days_real + dailyprecip + dailytemp + 
+                   snow + thunder + gallery_hop + is_holiday, data = firstmodel)
+
+bowl_modelGLM <- glm.nb(formula = 
+                          bowls_real ~ days_real + dailyprecip + dailytemp + 
+                          snow + thunder + gallery_hop + is_holiday, data = firstmodel,)
+
+  
+cones_function <- function(a,b,c,d,e){
+    
+    a <- readline('What day of the week is it? ')
+    b <- readline('How much is it going to rain? (in) ')
+    c <- readline('What is the average temp for the day? ')
+    d <- readline('Is it gallery hop? ')
+    e <- readline('Is it a holiday or holiday weekend? ')
+    
+    b <- as.numeric(paste(b))
+    c <- as.numeric(paste(c))
+    
+    
+conepredict <- round(predict(cone_modelGLM, data.frame(days_real = a, 
+                                               dailyprecip = b, 
+                                               dailytemp = c, 
+                                               snow = 0, 
+                                               thunder = '0', 
+                                               gallery_hop = d, 
+                                               is_holiday = e), 
+                     type = 'response'))
+
+bowlpredict <- round(predict(bowl_modelGLM, data.frame(days_real = a, 
+                                        dailyprecip = b, 
+                                        dailytemp = c, 
+                                        snow = 0, 
+                                        thunder = '0', 
+                                        gallery_hop = d, 
+                                        is_holiday = e), 
+              type = 'response'))
+
+overflowcone <- 0.5*sd(firstmodel$cones_real)
+overflowbowl <- 0.5*sd(firstmodel$bowls_real)
+
+predictions <- tibble(conepredict,bowlpredict) %>% add_column(.before = 'bowlpredict', 
+                                                              'uppercones' = round(
+                                                                overflowcone+conepredict)) %>% 
+                                                  add_column(.after = 'bowlpredict', 
+                                                              'upperbowls' = 
+                                                               round(overflowbowl+bowlpredict))
+                                                      
+print(predictions)
+
+}
+
+
+```
+
+```{r Updating the model}
+
+new_waffle_totals_daily <- read.xlsx("~/Documents/Data Projects/Waffle Project/waffle_totals.xlsx") %>% as_tibble() %>% dplyr::select(-X4)
+
+
+weather_data <- read_csv("weather data.csv") %>% as_tibble()
+weather_data <- weather_data[c(1:210, 617:810),]
+
+dailytemp <- weather_data$TAVG
+realdates <- weather_data$DATE
+dailyprecip <- weather_data$PRCP
+snow <- weather_data$SNOW
+thunder <- weather_data$WT03 %>% 
+  replace_na(0) %>% as.factor()
+
+
+cones_real <- new_waffle_totals_daily$Cones[1:404]
+bowls_real <- new_waffle_totals_daily$Bowls[1:404]
+days_real <- new_waffle_totals_daily$Day[1:404] %>% as_factor()
+
+
+newmodel <- tibble(realdates,days_real,cones_real,bowls_real,dailytemp,dailyprecip,snow,thunder)
+
+#Get gallery hop dates
+gallery_hopdates <- newmodel %>% 
+  filter(days_real == 'Saturday') %>% 
+  dplyr::select(realdates)
+gallery_hopdates <- gallery_hopdates[c(2,7,11,15,20,24,28,40,44,49,53,57),]
+gallery_hop <- factor(rep('No', 404), levels = c('No', 'Yes'))
+gallery_hop[c(13, 48, 76, 104, 139, 167, 195, 279, 307, 342, 370, 398)] <-  'Yes'
+
+#holidays
+is_holiday <- factor(rep('No', 404), levels = c('No', 'Yes'))
+is_holiday[c(43, 158, 183, 208, 210, 217, 252, 274, 294, 308, 372)] <-  'Yes'
+
+newmodel <- tibble(realdates,days_real,gallery_hop,is_holiday,cones_real,bowls_real,dailytemp,dailyprecip,snow,thunder)
+
+newmodel <- newmodel[!(newmodel$cones_real==0 & newmodel$bowls_real==0),]
+
+#MODEL
+
+cone_modelGLMnew <- glm.nb(formula = 
+                   cones_real ~ days_real + dailyprecip + dailytemp + 
+                   snow + thunder + gallery_hop + is_holiday, data = newmodel)
+
+bowl_modelGLMnew <- glm.nb(formula = 
+                          bowls_real ~ days_real + dailyprecip + dailytemp + 
+                          snow + thunder + gallery_hop + is_holiday, data = newmodel)
+
+#FUNCTION
+
+cones_function_new <- function(a,b,c,d,e){
+    
+    a <- readline('What day of the week is it? ')
+    b <- readline('How much is it going to rain? (in) ')
+    c <- readline('What is the average temp for the day? ')
+    d <- readline('Is it gallery hop? ')
+    e <- readline('Is it a holiday or holiday weekend? ')
+    
+    b <- as.numeric(paste(b))
+    c <- as.numeric(paste(c))
+    
+    
+conepredict <- round(predict(cone_modelGLMnew, data.frame(days_real = a, 
+                                               dailyprecip = b, 
+                                               dailytemp = c, 
+                                               snow = 0, 
+                                               thunder = '0', 
+                                               gallery_hop = d, 
+                                               is_holiday = e), 
+                     type = 'response'))
+
+bowlpredict <- round(predict(bowl_modelGLMnew, data.frame(days_real = a, 
+                                        dailyprecip = b, 
+                                        dailytemp = c, 
+                                        snow = 0, 
+                                        thunder = '0', 
+                                        gallery_hop = d, 
+                                        is_holiday = e), 
+              type = 'response'))
+
+overflowcone <- 0.5*sd(firstmodel$cones_real)
+overflowbowl <- 0.5*sd(firstmodel$bowls_real)
+
+predictions <- tibble(conepredict,bowlpredict) %>% add_column(.before = 'bowlpredict', 
+                                                              'uppercones' = round(
+                                                                overflowcone+conepredict)) %>% 
+                                                  add_column(.after = 'bowlpredict', 
+                                                              'upperbowls' = 
+                                                               round(overflowbowl+bowlpredict))
+                                                      
+print(predictions)
+
+}
 
 ```
 
