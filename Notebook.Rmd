@@ -164,15 +164,21 @@ save(firstmodel, file = "data_for_waffle_model_updated10-10.Rdata")
 
 ```{r Using the Code Day-to-Day}
 
-load("/Users/jacksonrudoff/Documents/Data Projects/Waffle Project/data_for_waffle_model_updated10-10.Rdata")
+library(readr)
+library(openxlsx)
+library(tidyverse)
+library(lme4)
+library(MASS)
+
+load("/Users/jacksonrudoff/Documents/Data Projects/Waffle Project/data_for_waffle_model_updated10-13.Rdata")
 
 cone_modelGLM <- glm.nb(formula = 
                    cones_real ~ days_real + dailyprecip + dailytemp + 
-                   snow + thunder + gallery_hop + is_holiday, data = firstmodel)
+                   snow + thunder + gallery_hop + is_holiday, data = newmodel)
 
 bowl_modelGLM <- glm.nb(formula = 
                           bowls_real ~ days_real + dailyprecip + dailytemp + 
-                          snow + thunder + gallery_hop + is_holiday, data = firstmodel,)
+                          snow + thunder + gallery_hop + is_holiday, data = newmodel)
 
   
 cones_function <- function(a,b,c,d,e){
@@ -205,8 +211,8 @@ bowlpredict <- round(predict(bowl_modelGLM, data.frame(days_real = a,
                                         is_holiday = e), 
               type = 'response'))
 
-overflowcone <- 0.5*sd(firstmodel$cones_real)
-overflowbowl <- 0.5*sd(firstmodel$bowls_real)
+overflowcone <- 0.5*sd(newmodel$cones_real)
+overflowbowl <- 0.5*sd(newmodel$bowls_real)
 
 predictions <- tibble(conepredict,bowlpredict) %>% add_column(.before = 'bowlpredict', 
                                                               'uppercones' = round(
@@ -222,7 +228,7 @@ print(predictions)
 
 ```
 
-```{r Updating the model}
+```{r Updating the model and testing}
 
 new_waffle_totals_daily <- read.xlsx("~/Documents/Data Projects/Waffle Project/waffle_totals.xlsx") %>% as_tibble() %>% dplyr::select(-X4)
 
@@ -303,8 +309,8 @@ bowlpredict <- round(predict(bowl_modelGLMnew, data.frame(days_real = a,
                                         is_holiday = e), 
               type = 'response'))
 
-overflowcone <- 0.5*sd(firstmodel$cones_real)
-overflowbowl <- 0.5*sd(firstmodel$bowls_real)
+overflowcone <- 0.5*sd(newmodel$cones_real)
+overflowbowl <- 0.5*sd(newmodel$bowls_real)
 
 predictions <- tibble(conepredict,bowlpredict) %>% add_column(.before = 'bowlpredict', 
                                                               'uppercones' = round(
@@ -316,6 +322,10 @@ predictions <- tibble(conepredict,bowlpredict) %>% add_column(.before = 'bowlpre
 print(predictions)
 
 }
+
+#SAVING THE DATA
+
+save(newmodel, file = "data_for_waffle_model_updated10-13.Rdata")
 
 ```
 

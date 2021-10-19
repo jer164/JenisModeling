@@ -1,17 +1,18 @@
-install.packages('tidyverse')
 library(readr)
 library(openxlsx)
 library(tidyverse)
 library(lme4)
 library(MASS)
 
+load("/Users/jacksonrudoff/Documents/Data Projects/Waffle Project/data_for_waffle_model_updated10-13.Rdata")
+
 cone_modelGLM <- glm.nb(formula = 
                           cones_real ~ days_real + dailyprecip + dailytemp + 
-                          snow + thunder + gallery_hop + is_holiday, data = firstmodel)
+                          snow + thunder + gallery_hop + is_holiday, data = newmodel)
 
 bowl_modelGLM <- glm.nb(formula = 
                           bowls_real ~ days_real + dailyprecip + dailytemp + 
-                          snow + thunder + gallery_hop + is_holiday, data = firstmodel,)
+                          snow + thunder + gallery_hop + is_holiday, data = newmodel)
 
 
 cones_function <- function(a,b,c,d,e){
@@ -44,12 +45,16 @@ cones_function <- function(a,b,c,d,e){
                                                          is_holiday = e), 
                                type = 'response'))
   
+  overflowcone <- 0.5*sd(newmodel$cones_real)
+  overflowbowl <- 0.5*sd(newmodel$bowls_real)
+  
   predictions <- tibble(conepredict,bowlpredict) %>% add_column(.before = 'bowlpredict', 
                                                                 'uppercones' = round(
-                                                                  1.10*conepredict)) %>% 
+                                                                  overflowcone+conepredict)) %>% 
     add_column(.after = 'bowlpredict', 
-               'upperbowls' = round(
-                 1.10*bowlpredict))
+               'upperbowls' = 
+                 round(overflowbowl+bowlpredict))
+  
   print(predictions)
   
 }
